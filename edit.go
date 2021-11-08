@@ -47,13 +47,13 @@ func simpleEditor(v *View, key Key, ch rune, mod Modifier) {
 	case KeyEnter:
 		v.EditNewLine()
 	case KeyArrowDown:
-		v.moveCursor(0, 1)
+		v.MoveCursor(0, 1)
 	case KeyArrowUp:
-		v.moveCursor(0, -1)
+		v.MoveCursor(0, -1)
 	case KeyArrowLeft:
-		v.moveCursor(-1, 0)
+		v.MoveCursor(-1, 0)
 	case KeyArrowRight:
-		v.moveCursor(1, 0)
+		v.MoveCursor(1, 0)
 	case KeyTab:
 		v.EditWrite('\t')
 	case KeyEsc:
@@ -65,8 +65,9 @@ func simpleEditor(v *View, key Key, ch rune, mod Modifier) {
 
 // EditWrite writes a rune at the cursor position.
 func (v *View) EditWrite(ch rune) {
+	w := runewidth.RuneWidth(ch)
 	v.writeRune(v.cx, v.cy, ch)
-	v.moveCursor(1, 0)
+	v.moveCursor(w, 0)
 }
 
 // EditDeleteToStartOfLine is the equivalent of pressing ctrl+U in your terminal, it deletes to the start of the line. Or if you are already at the start of the line, it deletes the newline character
@@ -156,8 +157,21 @@ func (v *View) EditNewLine() {
 
 // MoveCursor mores the cursor relative from it's current possition
 func (v *View) MoveCursor(dx, dy int) {
+	newX, newY := v.cx+dx, v.cy+dy
+	line := v.lines[newY]
+	col := 0
+	for index, _ := range line {
+		col += runewidth.RuneWidth(line[index].chr)
+		if newX <= col {
+			if dx >= 0 {
+				dx = runewidth.RuneWidth(line[index].chr)
+			} else {
+				dx = -runewidth.RuneWidth(line[index].chr)
+			}
+			break
+		}
+	}
 	v.moveCursor(dx, dy)
-	v.gui.userEvents <- userEvent{func(g *Gui) error { return nil }}
 }
 
 func (v *View) moveCursor(dx, dy int) {
@@ -242,23 +256,32 @@ func (v *View) writeRune(x, y int, ch rune) error {
 
 	line := v.lines[y]
 	lineLen := len(line)
+	w := runewidth.RuneWidth(ch)
 
 	var toInsert []cell
 	if x >= lineLen {
-		toInsert = make([]cell, x-lineLen+1)
+		toInsert = make([]cell, x-lineLen+w)
 	} else if !v.Overwrite {
-		toInsert = make([]cell, 1)
+		toInsert = make([]cell, w)
 	}
 	v.lines[y] = append(v.lines[y], toInsert...)
 
-	if !v.Overwrite || (v.Overwrite && x+1 >= lineLen) {
-		copy(v.lines[y][x+1:], v.lines[y][x:])
+	if !v.Overwrite || (v.Overwrite && x+w >= lineLen) {
+		copy(v.lines[y][x+w:], v.lines[y][x:])
 	}
 
 	v.lines[y][x] = cell{
 		fgColor: v.FgColor,
 		bgColor: v.BgColor,
 		chr:     ch,
+	}
+
+	for i := 1; i < w; i++ {
+		v.lines[y][x+i] = cell{
+			fgColor: v.FgColor,
+			bgColor: v.BgColor,
+			chr:     '\x00',
+		}
 	}
 
 	return nil
@@ -279,12 +302,10 @@ func (v *View) deleteRune(x, y int) (int, error) {
 		w := runewidth.RuneWidth(v.lines[y][i].chr)
 		tw += w
 		if tw > x {
-			v.lines[y] = append(v.lines[y][:i], v.lines[y][i+1:]...)
+			v.lines[y] = append(v.lines[y][:i], v.lines[y][i+w:]...)
 			return w, nil
 		}
-
 	}
-
 	return 0, nil
 }
 
