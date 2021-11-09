@@ -282,7 +282,8 @@ func (v *View) writeRune(x, y int, ch rune) error {
 		bgColor: v.BgColor,
 		chr:     ch,
 	}
-
+	// prevent text misplace when inserting
+	// fix problem when a|bc enter 烫烫 => a烫b烫c
 	for i := 1; i < w; i++ {
 		v.lines[y][x+i] = cell{
 			fgColor: v.FgColor,
