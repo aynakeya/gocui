@@ -6,6 +6,7 @@ package gocui
 
 import (
 	"errors"
+
 	"github.com/mattn/go-runewidth"
 )
 
@@ -164,6 +165,7 @@ func (v *View) MoveCursor(dx, dy int) {
 	if newY < 0 {
 		newY = 0
 	}
+	// if dx != to zero, then set dx to the next chr width
 	if dx != 0 {
 		line := v.lines[newY]
 		col := 0
@@ -205,7 +207,7 @@ func (v *View) moveCursor(dx, dy int) {
 	if newX > len(line) {
 		if dy == 0 && newY+1 < len(v.lines) {
 			newY++
-			//line = v.lines[newY] // Uncomment if adding code that uses line
+			// line = v.lines[newY] // Uncomment if adding code that uses line
 			newX = 0
 		} else {
 			newX = len(line)
@@ -283,6 +285,7 @@ func (v *View) writeRune(x, y int, ch rune) error {
 		chr:     ch,
 	}
 
+	// magic operation in https://github.com/jesseduffield/gocui/pull/10
 	for i := 1; i < w; i++ {
 		v.lines[y][x+i] = cell{
 			fgColor: v.FgColor,
