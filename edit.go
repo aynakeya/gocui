@@ -168,13 +168,13 @@ func (v *View) MoveCursor(dx, dy int) {
 		line := v.lines[newY]
 		col := 0
 		for index, _ := range line {
-			if newX <= col {
-				col += runewidth.RuneWidth(line[index].chr)
-				if dx >= 0 {
-					dx = runewidth.RuneWidth(line[index].chr)
-				} else {
-					dx = -runewidth.RuneWidth(line[index].chr)
-				}
+			col += runewidth.RuneWidth(line[index].chr)
+			if newX <= col && dx >= 0 {
+				dx = runewidth.RuneWidth(line[index].chr)
+				break
+			}
+			if newX < col && dx < 0 {
+				dx = -runewidth.RuneWidth(line[index].chr)
 				break
 			}
 		}
