@@ -6,7 +6,6 @@ package gocui
 
 import (
 	"errors"
-
 	"github.com/mattn/go-runewidth"
 )
 
@@ -158,17 +157,26 @@ func (v *View) EditNewLine() {
 // MoveCursor mores the cursor relative from it's current possition
 func (v *View) MoveCursor(dx, dy int) {
 	newX, newY := v.cx+dx, v.cy+dy
-	line := v.lines[newY]
-	col := 0
-	for index, _ := range line {
-		col += runewidth.RuneWidth(line[index].chr)
-		if newX <= col {
-			if dx >= 0 {
-				dx = runewidth.RuneWidth(line[index].chr)
-			} else {
-				dx = -runewidth.RuneWidth(line[index].chr)
+	// If newY is more than all lines set it to the last line
+	if newY >= len(v.lines) {
+		newY = len(v.lines) - 1
+	}
+	if newY < 0 {
+		newY = 0
+	}
+	if dx != 0 {
+		line := v.lines[newY]
+		col := 0
+		for index, _ := range line {
+			if newX <= col {
+				col += runewidth.RuneWidth(line[index].chr)
+				if dx >= 0 {
+					dx = runewidth.RuneWidth(line[index].chr)
+				} else {
+					dx = -runewidth.RuneWidth(line[index].chr)
+				}
+				break
 			}
-			break
 		}
 	}
 	v.moveCursor(dx, dy)
@@ -197,7 +205,7 @@ func (v *View) moveCursor(dx, dy int) {
 	if newX > len(line) {
 		if dy == 0 && newY+1 < len(v.lines) {
 			newY++
-			// line = v.lines[newY] // Uncomment if adding code that uses line
+			//line = v.lines[newY] // Uncomment if adding code that uses line
 			newX = 0
 		} else {
 			newX = len(line)
@@ -234,7 +242,6 @@ func (v *View) moveCursor(dx, dy int) {
 			v.ox = newXOnScreen
 		}
 	}
-
 	v.cx, v.cy = newX, newY
 }
 
