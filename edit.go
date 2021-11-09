@@ -285,7 +285,6 @@ func (v *View) writeRune(x, y int, ch rune) error {
 		chr:     ch,
 	}
 
-	// magic operation in https://github.com/jesseduffield/gocui/pull/10
 	// prevent text misplace when inserting
 	// fix problem for a|bc enter 烫烫 => a烫b烫c
 	for i := 1; i < w; i++ {
