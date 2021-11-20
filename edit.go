@@ -158,6 +158,11 @@ func (v *View) EditNewLine() {
 // MoveCursor mores the cursor relative from it's current possition
 func (v *View) MoveCursor(dx, dy int) {
 	newX, newY := v.cx+dx, v.cy+dy
+	// do nothing when no line exists
+	if len(v.lines) == 0 {
+		v.cx, v.cy = 0, 0
+		return
+	}
 	// If newY is more than all lines set it to the last line
 	if newY >= len(v.lines) {
 		newY = len(v.lines) - 1
