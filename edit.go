@@ -155,10 +155,22 @@ func (v *View) EditNewLine() {
 	v.cx = 0
 }
 
+// getChrIndex get the chr line index at position x and y
+func (v *View) getChrIndex(x, y int) int {
+	line := v.lines[y]
+	col := 0
+	for index, _ := range line {
+		col += runewidth.RuneWidth(line[index].chr)
+		if x <= col {
+			return index
+		}
+	}
+	return 0
+}
+
 // MoveCursor mores the cursor relative from it's current possition
 func (v *View) MoveCursor(dx, dy int) {
-	newX, newY := v.cx+dx, v.cy+dy
-	// do nothing when no line exists
+	_, newY := v.cx+dx, v.cy+dy
 	if len(v.lines) == 0 {
 		v.cx, v.cy = 0, 0
 		return
@@ -172,19 +184,53 @@ func (v *View) MoveCursor(dx, dy int) {
 	}
 	// if dx != to zero, then set dx to the next chr width
 	if dx != 0 {
-		line := v.lines[newY]
-		col := 0
-		for index, _ := range line {
-			col += runewidth.RuneWidth(line[index].chr)
-			if newX <= col && dx >= 0 {
-				dx = runewidth.RuneWidth(line[index].chr)
-				break
+		newDx := 0
+		chrIndex := v.getChrIndex(v.cx, newY)
+		if dx >= 0 {
+			line := v.lines[newY][chrIndex+1:]
+			if len(line) <= dx {
+				dx = len(line)
 			}
-			if newX < col && dx < 0 {
-				dx = -runewidth.RuneWidth(line[index].chr)
-				break
+			for index, _ := range line {
+				if dx == 0 {
+					break
+				}
+				if runewidth.RuneWidth(line[index].chr) == 0 {
+					continue
+				}
+				newDx += runewidth.RuneWidth(line[index].chr)
+				dx--
+			}
+		} else {
+			line := v.lines[newY][:chrIndex+1]
+			if len(line) <= -dx {
+				dx = -len(line)
+			}
+			for index := len(line) - 1; index >= 0; index-- {
+				if dx == 0 {
+					break
+				}
+				if runewidth.RuneWidth(line[index].chr) == 0 {
+					continue
+				}
+				newDx -= runewidth.RuneWidth(line[index].chr)
+				dx++
 			}
 		}
+		dx = newDx
+		//line := v.lines[newY]
+		//col := 0
+		//for index, _ := range line {
+		//	col += runewidth.RuneWidth(line[index].chr)
+		//	if newX <= col && dx >= 0 {
+		//		dx = runewidth.RuneWidth(line[index].chr)
+		//		break
+		//	}
+		//	if newX < col && dx < 0 {
+		//		dx = -runewidth.RuneWidth(line[index].chr)
+		//		break
+		//	}
+		//}
 	}
 	v.moveCursor(dx, dy)
 }
@@ -212,7 +258,7 @@ func (v *View) moveCursor(dx, dy int) {
 	if newX > len(line) {
 		if dy == 0 && newY+1 < len(v.lines) {
 			newY++
-			// line = v.lines[newY] // Uncomment if adding code that uses line
+			//line = v.lines[newY] // Uncomment if adding code that uses line
 			newX = 0
 		} else {
 			newX = len(line)
